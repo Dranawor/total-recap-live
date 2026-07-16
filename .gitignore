@@ -1,0 +1,9 @@
+node_modules
+dist
+.npm-cache
+.npm-home
+.DS_Store
+*.local
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
