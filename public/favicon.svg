@@ -1,6 +1,35 @@
-<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M22 19.2727C22 20.779 20.779 22 19.2727 22H14.7273C13.221 22 12 20.779 12 19.2727V12H19.2727C20.779 12 22 13.221 22 14.7273V19.2727Z" fill="#68C4FF"/>
-<path d="M20 2C21.1046 2 22 2.89543 22 4V7C22 8.10457 21.1046 9 20 9H17C15.8954 9 15 8.10457 15 7V4C15 2.89543 15.8954 2 17 2H20Z" fill="#0C79D8"/>
-<path d="M7 15C8.10457 15 9 15.8954 9 17V20C9 21.1046 8.10457 22 7 22H4C2.89543 22 2 21.1046 2 20V17C2 15.8954 2.89543 15 4 15H7Z" fill="#0C79D8"/>
-<path d="M12 12H4.72727C3.22104 12 2 10.779 2 9.27273V4.72727C2 3.22104 3.22104 2 4.72727 2H9.27273C10.779 2 12 3.22104 12 4.72727V12Z" fill="#2E9EFF"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="frame" x1="7" y1="4" x2="58" y2="61" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#19d7ff" />
+      <stop offset="0.48" stop-color="#9d7bff" />
+      <stop offset="1" stop-color="#ff2d95" />
+    </linearGradient>
+    <linearGradient id="signal" x1="8" y1="0" x2="56" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#19d7ff" />
+      <stop offset="0.5" stop-color="#cbff4a" />
+      <stop offset="1" stop-color="#ff2d95" />
+    </linearGradient>
+    <clipPath id="screen">
+      <rect x="3" y="3" width="58" height="58" rx="13" />
+    </clipPath>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="#070b18" />
+  <g clip-path="url(#screen)" opacity="0.2">
+    <path d="M-8 20 24-4h17L9 20H-8Zm13 22L69-6h14L19 42H5Zm23 20L72 27v14L44 62H28Z" fill="#19d7ff" />
+    <path d="M-3 52 58 6h16L13 52H-3Z" fill="#ff2d95" />
+  </g>
+  <rect x="2.75" y="2.75" width="58.5" height="58.5" rx="13.25" fill="none" stroke="url(#frame)" stroke-width="2.5" />
+  <g transform="translate(2.5 0) skewX(-6)" fill-rule="evenodd" clip-rule="evenodd">
+    <g transform="translate(2 1.5)" fill="#ff2d95">
+      <path d="M5 14h19v7h-5v29h-8V21H5v-7Zm20 0h11c8.5 0 13 4 13 11 0 4.7-2.2 8-6.5 9.7L50 50h-9l-6-14h-2v14h-8V14Zm8 7v8h3c3.5 0 5-1.2 5-4s-1.5-4-5-4h-3Zm17-7h8v29h5v7H50V14Z" />
+    </g>
+    <g transform="translate(-2 -1.5)" fill="#19d7ff">
+      <path d="M5 14h19v7h-5v29h-8V21H5v-7Zm20 0h11c8.5 0 13 4 13 11 0 4.7-2.2 8-6.5 9.7L50 50h-9l-6-14h-2v14h-8V14Zm8 7v8h3c3.5 0 5-1.2 5-4s-1.5-4-5-4h-3Zm17-7h8v29h5v7H50V14Z" />
+    </g>
+    <g fill="#f7faff">
+      <path d="M5 14h19v7h-5v29h-8V21H5v-7Zm20 0h11c8.5 0 13 4 13 11 0 4.7-2.2 8-6.5 9.7L50 50h-9l-6-14h-2v14h-8V14Zm8 7v8h3c3.5 0 5-1.2 5-4s-1.5-4-5-4h-3Zm17-7h8v29h5v7H50V14Z" />
+    </g>
+  </g>
+  <rect x="9" y="54" width="46" height="3" rx="1.5" fill="url(#signal)" />
 </svg>
