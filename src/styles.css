@@ -1368,6 +1368,32 @@ input:focus-visible,
   text-transform: uppercase;
 }
 
+.daily-countdown-type {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 14px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 45, 149, 0.07);
+}
+
+.daily-countdown-type span {
+  color: var(--magenta);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.daily-countdown-type em {
+  color: var(--muted);
+  font-size: 10px;
+  font-style: normal;
+  text-transform: uppercase;
+}
+
 .daily-chart-row {
   width: 100%;
   min-height: 43px;

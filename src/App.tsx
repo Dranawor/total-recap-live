@@ -124,7 +124,12 @@ type Archive = {
   dates: Array<{
     date: string;
     year: number;
+    countdownType?: string;
     entries: Array<{ rank: number; artist: string; title: string; points: number }>;
+    blocks?: Array<{
+      countdownType: string;
+      entries: Array<{ rank: number; artist: string; title: string; points: number }>;
+    }>;
   }>;
 };
 
@@ -572,6 +577,12 @@ export default function Home() {
   const searchArtists = [...new Set(searchSongs.map((song) => song.artist))].slice(0, 4);
   const dailyDates = DATA.dates.filter((item) => year === "all" || item.year === year);
   const dateRecord = dailyDates.find((item) => item.date === selectedDate);
+  const dateBlocks = dateRecord
+    ? dateRecord.blocks?.length
+      ? dateRecord.blocks
+      : [{ countdownType: dateRecord.countdownType || "Countdown", entries: dateRecord.entries }]
+    : [];
+  const dateEntryCount = dateBlocks.reduce((total, block) => total + block.entries.length, 0);
   const dateIndex = dateRecord ? dailyDates.findIndex((item) => item.date === dateRecord.date) : -1;
   const resultCount = viewMode === "songs" ? songRows.length : artistRows.length;
   const pageCount = Math.max(1, Math.ceil(resultCount / 20));
@@ -1019,26 +1030,31 @@ export default function Home() {
                 </div>
                 {dateRecord ? (
                   <div className="daily-chart-list">
-                    <div className="daily-date"><span>{DATE.format(new Date(`${dateRecord.date}T00:00:00Z`))}</span><em>{dateRecord.entries.length} ranked songs</em></div>
-                    {dateRecord.entries.map((entry) => {
-                      const song = findEntrySong(entry.artist, entry.title);
-                      return (
-                        <div className="daily-chart-row" key={`${entry.rank}-${entry.artist}-${entry.title}`}>
-                          <button className="daily-song-select" onClick={() => song && selectSong(song)} disabled={!song}>
-                            <strong>{entry.rank}</strong>
-                            <span><b>{entry.title}</b><small>{entry.artist}</small></span>
-                            <em>{entry.points} {entry.points === 1 ? "pt" : "pts"}</em>
-                          </button>
-                          {song ? <TimelineAddButton selected={selectedSongIds.includes(song.id)} disabled={selectedSongIds.length >= MAX_SERIES} label={`Add ${song.title} to the song timeline`} onClick={() => addSong(song)} className="daily-add" /> : null}
-                        </div>
-                      );
-                    })}
+                    <div className="daily-date"><span>{DATE.format(new Date(`${dateRecord.date}T00:00:00Z`))}</span><em>{dateBlocks.length > 1 ? `${dateBlocks.length} countdowns · ` : ""}{dateEntryCount} ranked songs</em></div>
+                    {dateBlocks.map((block, blockIndex) => (
+                      <div className="daily-countdown-block" key={`${block.countdownType}-${blockIndex}`}>
+                        {dateBlocks.length > 1 || block.countdownType.toLocaleLowerCase() !== "regular top 10" && block.countdownType.toLocaleLowerCase() !== "regular top ten" ? <div className="daily-countdown-type"><span>{block.countdownType}</span><em>{block.entries.length} entries</em></div> : null}
+                        {block.entries.map((entry) => {
+                          const song = findEntrySong(entry.artist, entry.title);
+                          return (
+                            <div className="daily-chart-row" key={`${blockIndex}-${entry.rank}-${entry.artist}-${entry.title}`}>
+                              <button className="daily-song-select" onClick={() => song && selectSong(song)} disabled={!song}>
+                                <strong>{entry.rank}</strong>
+                                <span><b>{entry.title}</b><small>{entry.artist}</small></span>
+                                <em>{entry.points} {entry.points === 1 ? "pt" : "pts"}</em>
+                              </button>
+                              {song ? <TimelineAddButton selected={selectedSongIds.includes(song.id)} disabled={selectedSongIds.length >= MAX_SERIES} label={`Add ${song.title} to the song timeline`} onClick={() => addSong(song)} className="daily-add" /> : null}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <div className="daily-empty">
                     <CalendarDays size={34} />
                     <h3>No daily rankings stored for {year === "all" ? "this filter" : year}</h3>
-                    <p>No regular daily countdown is available for this filter.</p>
+                    <p>No countdown is available for this filter.</p>
                     <div>{DATA.meta.pointYears.map((item) => <button key={item} onClick={() => setYear(item)}>{item}</button>)}</div>
                   </div>
                 )}
@@ -1094,7 +1110,7 @@ export default function Home() {
       <section className="method-strip">
         <Info size={22} />
         <div><strong>METHODOLOGY</strong><span>#1 = 10 points · #2 = 9 · … · #10 = 1</span></div>
-        <p>Regular countdowns are included; themed specials and retrospectives are excluded. Documented source irregularities are preserved.</p>
+        <p>Every recoverable countdown with 10 or fewer ranked entries is included, including specials, retrospectives, Top 5s, and partial countdowns.</p>
         <p><b>Coverage:</b> Daily rankings, appearances, and inverse points from September 1998 through October 2008.</p>
         <Check size={20} />
       </section>
