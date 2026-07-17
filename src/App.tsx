@@ -24,7 +24,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import archiveData from "./trl-data.json";
+import archiveData from "./trl-data";
 
 type Metric = "points" | "appearances";
 type ViewMode = "songs" | "artists";
