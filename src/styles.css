@@ -209,7 +209,18 @@ input:focus-visible,
   letter-spacing: 0.12em;
 }
 
-.search-results button {
+.search-result-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px;
+  align-items: stretch;
+  border-radius: 8px;
+}
+
+.search-result-row:hover {
+  background: var(--navy-hover);
+}
+
+.search-result-main {
   width: 100%;
   min-height: 54px;
   display: grid;
@@ -224,25 +235,54 @@ input:focus-visible,
   cursor: pointer;
 }
 
-.search-results button:hover {
-  background: var(--navy-hover);
-}
-
-.search-results button span,
-.search-results button strong,
-.search-results button small {
+.search-result-main span,
+.search-result-main strong,
+.search-result-main small {
   display: block;
 }
 
-.search-results button strong {
+.search-result-main strong {
   font-size: 15px;
 }
 
-.search-results button small,
-.search-results button em {
+.search-result-main small,
+.search-result-main em {
   color: var(--muted);
   font-size: 12px;
   font-style: normal;
+}
+
+.timeline-add {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  align-self: center;
+  justify-self: center;
+  padding: 0;
+  border: 1px solid rgba(25, 215, 255, 0.55);
+  border-radius: 8px;
+  background: rgba(25, 215, 255, 0.06);
+  color: var(--cyan);
+  cursor: pointer;
+  transition: 150ms ease;
+}
+
+.timeline-add:hover:not(:disabled) {
+  border-color: var(--cyan);
+  background: rgba(25, 215, 255, 0.14);
+  transform: translateY(-1px);
+}
+
+.timeline-add.added {
+  border-color: rgba(203, 255, 74, 0.48);
+  background: rgba(203, 255, 74, 0.08);
+  color: var(--lime);
+}
+
+.timeline-add:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
 }
 
 .no-results {
@@ -631,7 +671,7 @@ input:focus-visible,
   width: 100%;
   min-height: 49px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
   padding: 6px 9px;
@@ -640,6 +680,10 @@ input:focus-visible,
   background: transparent;
   text-align: left;
   cursor: pointer;
+}
+
+.plot-results button > svg {
+  color: var(--cyan);
 }
 
 .plot-results button:hover {
@@ -756,10 +800,9 @@ input:focus-visible,
   text-align: center;
 }
 
-.leader-head,
-.leader-row {
+.leader-head {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) 118px 50px;
+  grid-template-columns: 48px minmax(0, 1fr) 118px 50px 42px;
 }
 
 .leader-head {
@@ -787,13 +830,11 @@ input:focus-visible,
 .leader-row {
   width: 100%;
   min-height: 42px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px;
   align-items: stretch;
-  padding: 0 8px 0 0;
-  border: 0;
   border-bottom: 1px solid var(--line);
   background: transparent;
-  text-align: left;
-  cursor: pointer;
   transition: 160ms ease;
 }
 
@@ -804,6 +845,22 @@ input:focus-visible,
 
 .leader-row.selected {
   box-shadow: inset 3px 0 0 var(--cyan);
+}
+
+.leader-select {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 118px 50px;
+  align-items: stretch;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.leader-add {
+  border-left-color: rgba(25, 215, 255, 0.4);
 }
 
 .rank-cell {
@@ -1026,7 +1083,7 @@ input:focus-visible,
   background: var(--navy-hover);
 }
 
-.archive-table td button {
+.archive-table .archive-select {
   width: 100%;
   height: 41px;
   display: flex;
@@ -1039,23 +1096,35 @@ input:focus-visible,
   cursor: pointer;
 }
 
-.archive-table td button strong,
-.archive-table td button span {
+.archive-table .archive-select strong,
+.archive-table .archive-select span {
   max-width: 410px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.archive-table td button strong {
+.archive-table .archive-select strong {
   color: var(--white);
   font-size: 14px;
   font-weight: 600;
 }
 
-.archive-table td button span {
+.archive-table .archive-select span {
   color: var(--muted);
   font-size: 11px;
+}
+
+.archive-table th:last-child,
+.archive-table .table-add-cell {
+  width: 48px;
+  padding: 0 7px;
+  text-align: center;
+}
+
+.archive-table .table-add {
+  width: 30px;
+  height: 30px;
 }
 
 .pagination {
@@ -1113,7 +1182,12 @@ input:focus-visible,
   cursor: pointer;
 }
 
-.daily-toolbar label span {
+.calendar-picker {
+  position: relative;
+  min-width: 0;
+}
+
+.calendar-label {
   display: block;
   margin-bottom: 4px;
   color: var(--muted);
@@ -1123,15 +1197,152 @@ input:focus-visible,
   text-transform: uppercase;
 }
 
-.daily-toolbar select {
+.calendar-trigger {
   width: 100%;
   height: 40px;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 9px;
   padding: 0 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--ink);
   color: var(--white);
+  text-align: left;
+  cursor: pointer;
+}
+
+.calendar-trigger > svg {
+  color: var(--cyan);
+}
+
+.calendar-trigger > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendar-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.countdown-calendar {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  z-index: 30;
+  width: min(360px, calc(100vw - 72px));
+  padding: 12px;
+  transform: translateX(-50%);
+  border: 1px solid var(--cyan);
+  border-radius: 12px;
+  background: #0a1127;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.62);
+}
+
+.calendar-nav {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1.25fr) minmax(80px, 0.75fr) 34px;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.calendar-nav button {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--cyan);
+  cursor: pointer;
+}
+
+.calendar-nav button:disabled {
+  cursor: not-allowed;
+  opacity: 0.3;
+}
+
+.calendar-nav select {
+  width: 100%;
+  height: 34px;
+  min-width: 0;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--white);
   font: inherit;
+  cursor: pointer;
+}
+
+.calendar-weekdays,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.calendar-weekdays {
+  margin-bottom: 5px;
+}
+
+.calendar-weekdays span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.calendar-grid > span,
+.calendar-grid > button {
+  aspect-ratio: 1;
+}
+
+.calendar-grid > button {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(25, 215, 255, 0.42);
+  border-radius: 8px;
+  background: rgba(25, 215, 255, 0.06);
+  color: var(--white);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.calendar-grid > button:hover:not(:disabled) {
+  border-color: var(--cyan);
+  background: rgba(25, 215, 255, 0.17);
+}
+
+.calendar-grid > button.selected {
+  border-color: var(--lime);
+  background: var(--cyan);
+  color: var(--ink);
+  font-weight: 800;
+  box-shadow: 0 0 0 2px rgba(203, 255, 74, 0.18);
+}
+
+.calendar-grid > button:disabled {
+  border-color: transparent;
+  background: transparent;
+  color: rgba(135, 146, 179, 0.42);
+  cursor: default;
+}
+
+.countdown-calendar > p {
+  margin: 10px 2px 0;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
 }
 
 .daily-date {
@@ -1157,25 +1368,39 @@ input:focus-visible,
   text-transform: uppercase;
 }
 
-.daily-chart-list > button {
+.daily-chart-row {
+  width: 100%;
+  min-height: 43px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+}
+
+.daily-chart-row:hover {
+  background: var(--navy-hover);
+}
+
+.daily-song-select {
   width: 100%;
   min-height: 43px;
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr) 54px;
   align-items: center;
-  padding: 0 14px 0 0;
+  padding: 0 10px 0 0;
   border: 0;
-  border-bottom: 1px solid var(--line);
   background: transparent;
   text-align: left;
   cursor: pointer;
 }
 
-.daily-chart-list > button:hover {
-  background: var(--navy-hover);
+.daily-song-select:disabled {
+  cursor: default;
+  opacity: 0.55;
 }
 
-.daily-chart-list > button > strong {
+.daily-song-select > strong {
   height: 100%;
   display: grid;
   place-items: center;
@@ -1184,33 +1409,38 @@ input:focus-visible,
   font-size: 23px;
 }
 
-.daily-chart-list > button span {
+.daily-song-select span {
   min-width: 0;
   padding: 3px 12px;
 }
 
-.daily-chart-list > button b,
-.daily-chart-list > button small {
+.daily-song-select b,
+.daily-song-select small {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.daily-chart-list > button b {
+.daily-song-select b {
   font-size: 14px;
 }
 
-.daily-chart-list > button small {
+.daily-song-select small {
   color: var(--muted);
   font-size: 11px;
 }
 
-.daily-chart-list > button em {
+.daily-song-select em {
   color: var(--lime);
   font-size: 13px;
   font-style: normal;
   text-align: right;
+}
+
+.daily-add {
+  width: 30px;
+  height: 30px;
 }
 
 .daily-empty {
@@ -1500,6 +1730,17 @@ input:focus-visible,
   color: var(--cyan);
   font-weight: 600;
   cursor: pointer;
+}
+
+.spotlight-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
+.spotlight-action.active:not(.playlist-action) {
+  border-color: rgba(203, 255, 74, 0.55);
+  background: rgba(203, 255, 74, 0.09);
+  color: var(--lime);
 }
 
 .playlist-action {
@@ -1993,8 +2234,15 @@ input:focus-visible,
     display: none;
   }
 
-  .leader-head,
+  .leader-head {
+    grid-template-columns: 42px minmax(0, 1fr) 90px 44px 40px;
+  }
+
   .leader-row {
+    grid-template-columns: minmax(0, 1fr) 40px;
+  }
+
+  .leader-select {
     grid-template-columns: 42px minmax(0, 1fr) 90px 44px;
   }
 
@@ -2032,6 +2280,15 @@ input:focus-visible,
     align-items: flex-start;
     flex-direction: column;
     gap: 3px;
+  }
+
+  .daily-toolbar {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .countdown-calendar {
+    width: min(340px, calc(100vw - 52px));
   }
 
   .method-strip {

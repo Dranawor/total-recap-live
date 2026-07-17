@@ -360,6 +360,131 @@ function TimelineChart({ series, years, metric }: { series: ChartSeries[]; years
   );
 }
 
+const CALENDAR_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const CALENDAR_WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function TimelineAddButton({ selected, disabled, label, onClick, className = "" }: { selected: boolean; disabled: boolean; label: string; onClick: () => void; className?: string }) {
+  const title = selected ? "Already on the timeline" : disabled ? "Timeline is full" : label;
+  return (
+    <button
+      type="button"
+      className={`timeline-add ${selected ? "added" : ""} ${className}`.trim()}
+      onClick={onClick}
+      disabled={selected || disabled}
+      aria-label={title}
+      title={title}
+    >
+      {selected ? <Check size={16} /> : <Plus size={16} />}
+    </button>
+  );
+}
+
+function CountdownCalendar({ dates, value, onChange }: { dates: Archive["dates"]; value: string; onChange: (date: string) => void }) {
+  const fallback = dates.find((item) => item.date === value) || dates.at(-1);
+  const fallbackParts = (fallback?.date || "1998-01-01").split("-").map(Number);
+  const [open, setOpen] = useState(false);
+  const [visibleYear, setVisibleYear] = useState(fallbackParts[0]);
+  const [visibleMonth, setVisibleMonth] = useState(fallbackParts[1] - 1);
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const availableDates = useMemo(() => new Set(dates.map((item) => item.date)), [dates]);
+  const availableYears = useMemo(() => [...new Set(dates.map((item) => item.year))].sort((left, right) => left - right), [dates]);
+  const minimumDate = dates[0]?.date || "";
+  const maximumDate = dates.at(-1)?.date || "";
+  const minimumMonth = minimumDate ? Number(minimumDate.slice(0, 4)) * 12 + Number(minimumDate.slice(5, 7)) - 1 : 0;
+  const maximumMonth = maximumDate ? Number(maximumDate.slice(0, 4)) * 12 + Number(maximumDate.slice(5, 7)) - 1 : 0;
+  const currentMonth = visibleYear * 12 + visibleMonth;
+  const firstWeekday = new Date(Date.UTC(visibleYear, visibleMonth, 1)).getUTCDay();
+  const daysInMonth = new Date(Date.UTC(visibleYear, visibleMonth + 1, 0)).getUTCDate();
+
+  useEffect(() => {
+    const selected = dates.find((item) => item.date === value) || dates.at(-1);
+    if (!selected) return;
+    const [nextYear, nextMonth] = selected.date.split("-").map(Number);
+    setVisibleYear(nextYear);
+    setVisibleMonth(nextMonth - 1);
+  }, [dates, value]);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: PointerEvent) => {
+      if (!pickerRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const closeWithKeyboard = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("keydown", closeWithKeyboard);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      document.removeEventListener("keydown", closeWithKeyboard);
+    };
+  }, [open]);
+
+  function shiftMonth(amount: number) {
+    const next = new Date(Date.UTC(visibleYear, visibleMonth + amount, 1));
+    setVisibleYear(next.getUTCFullYear());
+    setVisibleMonth(next.getUTCMonth());
+  }
+
+  return (
+    <div className="calendar-picker" ref={pickerRef}>
+      <span className="calendar-label">Countdown date</span>
+      <button
+        type="button"
+        className="calendar-trigger"
+        onClick={() => setOpen((current) => !current)}
+        disabled={!dates.length}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+      >
+        <CalendarDays size={17} />
+        <span>{fallback ? DATE.format(new Date(`${fallback.date}T00:00:00Z`)) : "No dates available"}</span>
+        <ChevronDown size={16} />
+      </button>
+      {open ? (
+        <div className="countdown-calendar" role="dialog" aria-label="Choose a countdown date">
+          <div className="calendar-nav">
+            <button type="button" onClick={() => shiftMonth(-1)} disabled={currentMonth <= minimumMonth} aria-label="Previous month"><ChevronLeft size={18} /></button>
+            <select value={visibleMonth} onChange={(event) => setVisibleMonth(Number(event.target.value))} aria-label="Month">
+              {CALENDAR_MONTHS.map((month, index) => <option key={month} value={index}>{month}</option>)}
+            </select>
+            <select value={visibleYear} onChange={(event) => setVisibleYear(Number(event.target.value))} aria-label="Year">
+              {availableYears.map((calendarYear) => <option key={calendarYear} value={calendarYear}>{calendarYear}</option>)}
+            </select>
+            <button type="button" onClick={() => shiftMonth(1)} disabled={currentMonth >= maximumMonth} aria-label="Next month"><ChevronRight size={18} /></button>
+          </div>
+          <div className="calendar-weekdays" aria-hidden="true">
+            {CALENDAR_WEEKDAYS.map((day) => <span key={day}>{day}</span>)}
+          </div>
+          <div className="calendar-grid">
+            {Array.from({ length: 42 }, (_, index) => {
+              const day = index - firstWeekday + 1;
+              if (day < 1 || day > daysInMonth) return <span key={index} />;
+              const isoDate = `${visibleYear}-${String(visibleMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+              const available = availableDates.has(isoDate);
+              const selected = isoDate === value;
+              return (
+                <button
+                  type="button"
+                  key={isoDate}
+                  className={selected ? "selected" : ""}
+                  disabled={!available}
+                  onClick={() => { onChange(isoDate); setOpen(false); }}
+                  aria-label={available ? DATE.format(new Date(`${isoDate}T00:00:00Z`)) : undefined}
+                  aria-pressed={selected}
+                >
+                  {day}
+                </button>
+              );
+            })}
+          </div>
+          <p>Highlighted dates have a stored countdown.</p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function Home() {
   const [year, setYear] = useState<number | "all">("all");
   const [metric, setMetric] = useState<Metric>("points");
@@ -446,7 +571,7 @@ export default function Home() {
     .slice(0, 7);
   const searchArtists = [...new Set(searchSongs.map((song) => song.artist))].slice(0, 4);
   const dailyDates = DATA.dates.filter((item) => year === "all" || item.year === year);
-  const dateRecord = dailyDates.find((item) => item.date === selectedDate) || dailyDates.at(-1);
+  const dateRecord = dailyDates.find((item) => item.date === selectedDate);
   const dateIndex = dateRecord ? dailyDates.findIndex((item) => item.date === dateRecord.date) : -1;
   const resultCount = viewMode === "songs" ? songRows.length : artistRows.length;
   const pageCount = Math.max(1, Math.ceil(resultCount / 20));
@@ -454,6 +579,12 @@ export default function Home() {
   const pageStart = safePage * 20;
   const playlistSongs = playlistSongIds.map((id) => DATA.songs.find((song) => song.id === id)).filter((song): song is Song => Boolean(song));
   const activeSongInPlaylist = playlistSongIds.includes(activeSong.id);
+  const activeSongInTimeline = selectedSongIds.includes(activeSong.id);
+
+  useEffect(() => {
+    const filteredDates = DATA.dates.filter((item) => year === "all" || item.year === year);
+    setSelectedDate((current) => filteredDates.some((item) => item.date === current) ? current : filteredDates.at(-1)?.date || "");
+  }, [year]);
 
   function fetchPreview(song: Song) {
     const cached = previewCacheRef.current.get(song.id);
@@ -477,8 +608,11 @@ export default function Home() {
     const audio = audioRef.current || new Audio();
     audioRef.current = audio;
     audio.src = result.previewUrl;
+    audio.onplay = () => setPreview((current) => current.songId === song.id ? { ...current, status: "playing" } : current);
+    audio.onpause = () => setPreview((current) => current.songId === song.id && !audio.ended ? { ...current, status: "paused" } : current);
     audio.onended = () => setPreview((current) => current.songId === song.id ? { ...current, status: "ready" } : current);
     audio.onerror = () => setPreview((current) => current.songId === song.id ? { ...current, status: "error" } : current);
+    setPreview({ ...result, songId: song.id, status: "ready" });
     try {
       await audio.play();
       if (requestId === previewRequestRef.current) setPreview({ ...result, songId: song.id, status: "playing" });
@@ -489,21 +623,25 @@ export default function Home() {
 
   function selectSong(song: Song) {
     setActiveSongId(song.id);
-    void playPreview(song);
+    setSearchOpen(false);
+    if (preview.songId !== song.id) void playPreview(song);
   }
 
-  async function togglePreview() {
-    if (preview.songId !== activeSong.id || !preview.previewUrl || !audioRef.current) {
-      await playPreview(activeSong);
+  async function toggleSongPreview(song: Song) {
+    setActiveSongId(song.id);
+    const audio = audioRef.current;
+    if (preview.songId === song.id && preview.status === "loading") return;
+    if (preview.songId !== song.id || !preview.previewUrl || !audio) {
+      await playPreview(song);
       return;
     }
-    if (preview.status === "playing") {
-      audioRef.current.pause();
-      setPreview((current) => ({ ...current, status: "paused" }));
+    if (!audio.paused && !audio.ended) {
+      audio.pause();
       return;
     }
+    if (audio.ended) audio.currentTime = 0;
     try {
-      await audioRef.current.play();
+      await audio.play();
       setPreview((current) => ({ ...current, status: "playing" }));
     } catch {
       setPreview((current) => ({ ...current, status: "ready" }));
@@ -538,7 +676,6 @@ export default function Home() {
   function addSong(song: Song) {
     setTimelineMode("songs");
     setSelectedSongIds((current) => current.includes(song.id) || current.length >= MAX_SERIES ? current : [...current, song.id]);
-    selectSong(song);
     setSearchOpen(false);
     setChartSearchOpen(false);
     setChartQuery("");
@@ -551,6 +688,7 @@ export default function Home() {
   function addArtist(artist: string) {
     setTimelineMode("artists");
     setSelectedArtists((current) => current.includes(artist) || current.length >= MAX_SERIES ? current : [...current, artist]);
+    setSearchOpen(false);
     setChartSearchOpen(false);
     setChartQuery("");
   }
@@ -624,7 +762,7 @@ export default function Home() {
             onFocus={() => setSearchOpen(Boolean(query))}
             onKeyDown={(event) => {
               if (event.key === "Escape") setSearchOpen(false);
-              if (event.key === "Enter" && searchSongs[0]) addSong(searchSongs[0]);
+              if (event.key === "Enter" && searchSongs[0]) selectSong(searchSongs[0]);
             }}
             placeholder="Search songs or artists"
             aria-label="Search songs or artists"
@@ -640,18 +778,36 @@ export default function Home() {
                 <>
                   <span className="result-label">SONGS</span>
                   {searchSongs.map((song) => (
-                    <button key={song.id} onMouseDown={(event) => event.preventDefault()} onClick={() => addSong(song)}>
-                      <Music2 size={16} />
-                      <span><strong>{song.title}</strong><small>{song.artist}</small></span>
-                      <em>{song.totalAppearances} apps</em>
-                    </button>
+                    <div className="search-result-row" key={song.id} onMouseDown={(event) => event.preventDefault()}>
+                      <button className="search-result-main" onClick={() => selectSong(song)}>
+                        <Music2 size={16} />
+                        <span><strong>{song.title}</strong><small>{song.artist}</small></span>
+                        <em>{song.totalAppearances} apps</em>
+                      </button>
+                      <TimelineAddButton
+                        selected={selectedSongIds.includes(song.id)}
+                        disabled={selectedSongIds.length >= MAX_SERIES}
+                        label={`Add ${song.title} to the song timeline`}
+                        onClick={() => addSong(song)}
+                        className="search-add"
+                      />
+                    </div>
                   ))}
                   {searchArtists.length ? <span className="result-label">ARTISTS</span> : null}
                   {searchArtists.map((artist) => (
-                    <button key={artist} onMouseDown={(event) => event.preventDefault()} onClick={() => pickArtist(artist)}>
-                      <Users size={16} />
-                      <span><strong>{artist}</strong><small>View artist totals</small></span>
-                    </button>
+                    <div className="search-result-row" key={artist} onMouseDown={(event) => event.preventDefault()}>
+                      <button className="search-result-main" onClick={() => pickArtist(artist)}>
+                        <Users size={16} />
+                        <span><strong>{artist}</strong><small>View artist totals</small></span>
+                      </button>
+                      <TimelineAddButton
+                        selected={selectedArtists.includes(artist)}
+                        disabled={selectedArtists.length >= MAX_SERIES}
+                        label={`Add ${artist} to the artist timeline`}
+                        onClick={() => addArtist(artist)}
+                        className="search-add"
+                      />
+                    </div>
                   ))}
                 </>
               ) : <p className="no-results">No matching songs or artists.</p>}
@@ -727,11 +883,13 @@ export default function Home() {
                 <div className="plot-results">
                   {timelineMode === "songs" ? chartSongCandidates.map((song) => (
                     <button key={song.id} onMouseDown={(event) => event.preventDefault()} onClick={() => addSong(song)}>
+                      <Plus size={15} />
                       <span><strong>{song.title}</strong><small>{song.artist}</small></span>
                       <em>{NUMBER.format(songMetric(song, selectedYears, metric))}</em>
                     </button>
                   )) : chartArtistCandidates.map((artist) => (
                     <button key={artist.id} onMouseDown={(event) => event.preventDefault()} onClick={() => addArtist(artist.artist)}>
+                      <Plus size={15} />
                       <span><strong>{artist.artist}</strong><small>{artist.songCount} charting {artist.songCount === 1 ? "song" : "songs"}</small></span>
                       <em>{NUMBER.format(metric === "points" ? artist.points : artist.appearances)}</em>
                     </button>
@@ -754,7 +912,7 @@ export default function Home() {
             <span className="row-count">{viewMode === "songs" ? matchingSongs.length : artistRows.length} results</span>
           </div>
           <div className="leader-head">
-            <span>Rank</span><span>{viewMode === "songs" ? "Song / artist" : "Artist / top song"}</span><span>{metric === "points" ? "Points" : "Apps"}</span><span>{viewMode === "songs" ? "Peak" : "Songs"}</span>
+            <span>Rank</span><span>{viewMode === "songs" ? "Song / artist" : "Artist / top song"}</span><span>{metric === "points" ? "Points" : "Apps"}</span><span>{viewMode === "songs" ? "Peak" : "Songs"}</span><span aria-label="Add to timeline" />
           </div>
           <div className="leader-list">
             {viewMode === "songs" ? songRows.slice(0, 10).map((song, index) => {
@@ -763,23 +921,30 @@ export default function Home() {
               const maximum = Math.max(1, songMetric(songRows[0], selectedYears, metric));
               const isSelected = selectedSongIds.includes(song.id);
               return (
-                <button key={song.id} className={`leader-row ${isSelected ? "selected" : ""}`} onClick={() => addSong(song)}>
-                  <strong className="rank-cell">{String(index + 1).padStart(2, "0")}</strong>
-                  <span className="song-cell"><b>{song.title}</b><small>{song.artist}</small></span>
-                  <span className="value-cell"><b>{NUMBER.format(value)}</b><i><em style={{ width: `${(value / maximum) * 100}%` }} /></i></span>
-                  <span className="peak-cell">{stats.bestRank ? `#${stats.bestRank}` : "—"}</span>
-                </button>
+                <div key={song.id} className={`leader-row ${isSelected ? "selected" : ""}`}>
+                  <button className="leader-select" onClick={() => selectSong(song)}>
+                    <strong className="rank-cell">{String(index + 1).padStart(2, "0")}</strong>
+                    <span className="song-cell"><b>{song.title}</b><small>{song.artist}</small></span>
+                    <span className="value-cell"><b>{NUMBER.format(value)}</b><i><em style={{ width: `${(value / maximum) * 100}%` }} /></i></span>
+                    <span className="peak-cell">{stats.bestRank ? `#${stats.bestRank}` : "—"}</span>
+                  </button>
+                  <TimelineAddButton selected={isSelected} disabled={selectedSongIds.length >= MAX_SERIES} label={`Add ${song.title} to the song timeline`} onClick={() => addSong(song)} className="leader-add" />
+                </div>
               );
             }) : artistRows.slice(0, 10).map((artist, index) => {
               const value = metric === "points" ? artist.points : artist.appearances;
               const maximum = Math.max(1, metric === "points" ? artistRows[0]?.points || 1 : artistRows[0]?.appearances || 1);
+              const isSelected = selectedArtists.includes(artist.artist);
               return (
-                <button key={artist.id} className={`leader-row ${selectedArtists.includes(artist.artist) ? "selected" : ""}`} onClick={() => addArtist(artist.artist)}>
-                  <strong className="rank-cell">{String(index + 1).padStart(2, "0")}</strong>
-                  <span className="song-cell"><b>{artist.artist}</b><small>{artist.topSong ? `Top song: ${artist.topSong.title}` : ""}</small></span>
-                  <span className="value-cell"><b>{NUMBER.format(value)}</b><i><em style={{ width: `${(value / maximum) * 100}%` }} /></i></span>
-                  <span className="peak-cell">{artist.songCount}</span>
-                </button>
+                <div key={artist.id} className={`leader-row ${isSelected ? "selected" : ""}`}>
+                  <button className="leader-select" onClick={() => pickArtist(artist.artist)}>
+                    <strong className="rank-cell">{String(index + 1).padStart(2, "0")}</strong>
+                    <span className="song-cell"><b>{artist.artist}</b><small>{artist.topSong ? `Top song: ${artist.topSong.title}` : ""}</small></span>
+                    <span className="value-cell"><b>{NUMBER.format(value)}</b><i><em style={{ width: `${(value / maximum) * 100}%` }} /></i></span>
+                    <span className="peak-cell">{artist.songCount}</span>
+                  </button>
+                  <TimelineAddButton selected={isSelected} disabled={selectedArtists.length >= MAX_SERIES} label={`Add ${artist.artist} to the artist timeline`} onClick={() => addArtist(artist.artist)} className="leader-add" />
+                </div>
               );
             })}
           </div>
@@ -809,7 +974,7 @@ export default function Home() {
                 <div className="table-scroll">
                   <table className="archive-table">
                     <thead>
-                      <tr><th>#</th><th>{viewMode === "songs" ? "Song / Artist" : "Artist / Top Song"}</th><th>Apps</th><th>Points</th><th>#1s</th><th>{viewMode === "songs" ? "Peak" : "Songs"}</th></tr>
+                      <tr><th>#</th><th>{viewMode === "songs" ? "Song / Artist" : "Artist / Top Song"}</th><th>Apps</th><th>Points</th><th>#1s</th><th>{viewMode === "songs" ? "Peak" : "Songs"}</th><th aria-label="Add to timeline" /></tr>
                     </thead>
                     <tbody>
                       {viewMode === "songs" ? songRows.slice(pageStart, pageStart + 20).map((song, index) => {
@@ -817,21 +982,23 @@ export default function Home() {
                         return (
                           <tr key={song.id} className={activeSong.id === song.id ? "active" : ""}>
                             <td>{pageStart + index + 1}</td>
-                            <td><button onClick={() => addSong(song)}><strong>{song.title}</strong><span>{song.artist}</span></button></td>
+                            <td><button className="archive-select" onClick={() => selectSong(song)}><strong>{song.title}</strong><span>{song.artist}</span></button></td>
                             <td>{NUMBER.format(songMetric(song, selectedYears, "appearances"))}</td>
                             <td>{NUMBER.format(songMetric(song, selectedYears, "points"))}</td>
                             <td>{stats.numberOnes || "—"}</td>
                             <td>{stats.bestRank ? `#${stats.bestRank}` : "—"}</td>
+                            <td className="table-add-cell"><TimelineAddButton selected={selectedSongIds.includes(song.id)} disabled={selectedSongIds.length >= MAX_SERIES} label={`Add ${song.title} to the song timeline`} onClick={() => addSong(song)} className="table-add" /></td>
                           </tr>
                         );
                       }) : artistRows.slice(pageStart, pageStart + 20).map((artist, index) => (
                         <tr key={artist.id}>
                           <td>{pageStart + index + 1}</td>
-                          <td><button onClick={() => addArtist(artist.artist)}><strong>{artist.artist}</strong><span>{artist.topSong?.title || ""}</span></button></td>
+                          <td><button className="archive-select" onClick={() => pickArtist(artist.artist)}><strong>{artist.artist}</strong><span>{artist.topSong?.title || ""}</span></button></td>
                           <td>{NUMBER.format(artist.appearances)}</td>
                           <td>{NUMBER.format(artist.points)}</td>
                           <td>{artist.numberOnes || "—"}</td>
                           <td>{artist.songCount}</td>
+                          <td className="table-add-cell"><TimelineAddButton selected={selectedArtists.includes(artist.artist)} disabled={selectedArtists.length >= MAX_SERIES} label={`Add ${artist.artist} to the artist timeline`} onClick={() => addArtist(artist.artist)} className="table-add" /></td>
                         </tr>
                       ))}
                     </tbody>
@@ -847,12 +1014,7 @@ export default function Home() {
               <>
                 <div className="daily-toolbar">
                   <button aria-label="Previous countdown" disabled={dateIndex <= 0} onClick={() => dateIndex > 0 && setSelectedDate(dailyDates[dateIndex - 1].date)}><ChevronLeft size={19} /></button>
-                  <label>
-                    <span>Countdown date</span>
-                    <select value={dateRecord?.date || ""} onChange={(event) => setSelectedDate(event.target.value)} disabled={!dailyDates.length}>
-                      {dailyDates.map((item) => <option key={item.date} value={item.date}>{DATE.format(new Date(`${item.date}T00:00:00Z`))}</option>)}
-                    </select>
-                  </label>
+                  <CountdownCalendar dates={dailyDates} value={selectedDate} onChange={setSelectedDate} />
                   <button aria-label="Next countdown" disabled={dateIndex < 0 || dateIndex >= dailyDates.length - 1} onClick={() => dateIndex >= 0 && dateIndex < dailyDates.length - 1 && setSelectedDate(dailyDates[dateIndex + 1].date)}><ChevronRight size={19} /></button>
                 </div>
                 {dateRecord ? (
@@ -861,11 +1023,14 @@ export default function Home() {
                     {dateRecord.entries.map((entry) => {
                       const song = findEntrySong(entry.artist, entry.title);
                       return (
-                        <button key={`${entry.rank}-${entry.artist}-${entry.title}`} onClick={() => song && addSong(song)} disabled={!song}>
-                          <strong>{entry.rank}</strong>
-                          <span><b>{entry.title}</b><small>{entry.artist}</small></span>
-                          <em>{entry.points} {entry.points === 1 ? "pt" : "pts"}</em>
-                        </button>
+                        <div className="daily-chart-row" key={`${entry.rank}-${entry.artist}-${entry.title}`}>
+                          <button className="daily-song-select" onClick={() => song && selectSong(song)} disabled={!song}>
+                            <strong>{entry.rank}</strong>
+                            <span><b>{entry.title}</b><small>{entry.artist}</small></span>
+                            <em>{entry.points} {entry.points === 1 ? "pt" : "pts"}</em>
+                          </button>
+                          {song ? <TimelineAddButton selected={selectedSongIds.includes(song.id)} disabled={selectedSongIds.length >= MAX_SERIES} label={`Add ${song.title} to the song timeline`} onClick={() => addSong(song)} className="daily-add" /> : null}
+                        </div>
                       );
                     })}
                   </div>
@@ -887,12 +1052,12 @@ export default function Home() {
             <p>{activeSong.artist}</p>
             <div className={`preview-card ${preview.songId === activeSong.id ? preview.status : "idle"}`}>
               {preview.songId === activeSong.id && preview.artworkUrl ? <div className="preview-image" style={{ backgroundImage: `url("${preview.artworkUrl}")` }} aria-hidden="true" /> : <div className="preview-art"><Music2 size={22} /></div>}
-              <button className="preview-toggle" onClick={() => void togglePreview()} disabled={preview.songId === activeSong.id && preview.status === "loading"} aria-label={preview.status === "playing" ? "Pause preview" : "Play Apple Music preview"}>
+              <button className="preview-toggle" onClick={() => void toggleSongPreview(activeSong)} disabled={preview.songId === activeSong.id && preview.status === "loading"} aria-label={preview.songId === activeSong.id && preview.status === "playing" ? "Pause preview" : "Play Apple Music preview"}>
                 {preview.songId === activeSong.id && preview.status === "loading" ? <LoaderCircle className="spin" size={20} /> : preview.songId === activeSong.id && preview.status === "playing" ? <Pause size={20} /> : <Play size={20} />}
               </button>
               <div className="preview-copy">
                 <strong>APPLE MUSIC PREVIEW</strong>
-                <span>{preview.songId !== activeSong.id || preview.status === "idle" ? "Select play to hear a preview" : preview.status === "loading" ? "Finding the closest catalog match…" : preview.status === "playing" ? "Playing preview" : preview.status === "unavailable" ? "No preview found for this song" : preview.status === "error" ? "Preview could not be played" : "Preview ready"}</span>
+                <span>{preview.songId !== activeSong.id || preview.status === "idle" ? "Select play to hear a preview" : preview.status === "loading" ? "Finding the closest catalog match…" : preview.status === "playing" ? "Playing preview" : preview.status === "paused" ? "Preview paused" : preview.status === "unavailable" ? "No preview found for this song" : preview.status === "error" ? "Preview could not be played" : "Preview ready"}</span>
               </div>
               {preview.songId === activeSong.id && preview.trackViewUrl ? <a href={preview.trackViewUrl} target="_blank" rel="noreferrer" aria-label="Open this song in Apple Music"><ExternalLink size={17} /></a> : null}
             </div>
@@ -919,7 +1084,7 @@ export default function Home() {
               })}
             </div>
             <div className="spotlight-actions">
-              <button className="spotlight-action" onClick={() => addSong(activeSong)}><LineChart size={17} /> Add to timeline</button>
+              <button className={`spotlight-action ${activeSongInTimeline ? "active" : ""}`} onClick={() => addSong(activeSong)} disabled={activeSongInTimeline || selectedSongIds.length >= MAX_SERIES}>{activeSongInTimeline ? <Check size={17} /> : <Plus size={17} />} {activeSongInTimeline ? "Added to timeline" : "Add to timeline"}</button>
               <button className={`spotlight-action playlist-action ${activeSongInPlaylist ? "active" : ""}`} onClick={() => togglePlaylist(activeSong)}>{activeSongInPlaylist ? <Check size={17} /> : <ListMusic size={17} />} {activeSongInPlaylist ? "Remove from playlist" : "Add to playlist"}</button>
             </div>
           </aside>
@@ -948,10 +1113,10 @@ export default function Home() {
       <div className="playlist-list">
         {playlistSongs.length ? playlistSongs.map((song, index) => (
           <div className={`playlist-row ${activeSong.id === song.id ? "active" : ""}`} key={song.id}>
-            <button className="playlist-track" onClick={() => selectSong(song)}>
+            <button className="playlist-track" onClick={() => void toggleSongPreview(song)} disabled={preview.songId === song.id && preview.status === "loading"} aria-label={preview.songId === song.id && preview.status === "playing" ? `Pause ${song.title}` : `Play ${song.title}`}>
               <strong>{String(index + 1).padStart(2, "0")}</strong>
               <span><b>{song.title}</b><small>{song.artist}</small></span>
-              {preview.songId === song.id && preview.status === "playing" ? <Pause size={16} /> : <Play size={16} />}
+              {preview.songId === song.id && preview.status === "loading" ? <LoaderCircle className="spin" size={16} /> : preview.songId === song.id && preview.status === "playing" ? <Pause size={16} /> : <Play size={16} />}
             </button>
             <button className="playlist-remove" onClick={() => togglePlaylist(song)} aria-label={`Remove ${song.title} from playlist`}><X size={17} /></button>
           </div>
